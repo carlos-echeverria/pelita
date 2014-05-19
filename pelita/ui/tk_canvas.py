@@ -107,7 +107,7 @@ class UI:
 
 class TkApplication:
     def __init__(self, master, controller_address=None,
-                 geometry=None, delay=1, stop_after=None):
+                 geometry=None, delay=1, stop_after=None, rainbow=False):
         self.master = master
         self.master.configure(background="white")
 
@@ -132,6 +132,7 @@ class TkApplication:
         self.size_changed = True
 
         self._grid_enabled = False
+        self._rainbow = rainbow
 
         self._times = []
         self._fps = None
@@ -350,6 +351,13 @@ class TkApplication:
         if ((self.mesh_graph.screen_width, self.mesh_graph.screen_height)
             != (self.ui.game_canvas.winfo_width(), self.ui.game_canvas.winfo_height())):
             self.size_changed = True
+
+        if self._rainbow:
+            import random
+            r = random.randint(0, 15)
+            g = random.randint(0, 15)
+            b = random.randint(0, 15)
+            self.ui.game_canvas.configure(background=col(r*16, g*16, b*16))
 
         self.mesh_graph.screen_width = self.ui.game_canvas.winfo_width()
         self.mesh_graph.screen_height = self.ui.game_canvas.winfo_height()
@@ -606,7 +614,7 @@ class TkApplication:
         self.ui.game_canvas.delete(tkinter.ALL)
 
     def draw_food(self, universe):
-        if not self.size_changed:
+        if not self.size_changed and not self._rainbow:
             return
         self.ui.game_canvas.delete("food")
         for position in universe.food_list:
@@ -615,10 +623,13 @@ class TkApplication:
             food_item.draw(self.ui.game_canvas)
 
     def draw_maze(self, universe):
-        if not self.size_changed:
+        if not self.size_changed and not self._rainbow:
             return
         self.ui.game_canvas.delete("wall")
         num = 0
+        self.t = getattr(self, "t", 0) + 1
+        if self._rainbow:
+            self.t = getattr(self, "t", 0) + 1
         for position, wall in universe.maze.items():
             model_x, model_y = position
             if wall:
@@ -627,8 +638,11 @@ class TkApplication:
                                   for dy in [-1, 0, 1]
                                   if universe.maze.get((model_x + dx, model_y + dy), None)]
                 wall_item = Wall(self.mesh_graph, wall_neighbors=wall_neighbors, position=(model_x, model_y))
-                wall_item.draw(self.ui.game_canvas)
                 num += 1
+                if self._rainbow:
+                    wall_item.draw(self.ui.game_canvas, self.t)
+                else:
+                    wall_item.draw(self.ui.game_canvas)
 
     def init_bot_sprites(self, universe):
         for sprite in self.bot_sprites.values():
